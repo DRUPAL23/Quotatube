@@ -1,0 +1,26 @@
+name: Deploy
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Docker"]
+    types: [completed]
+permissions:
+  contents: read
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/quotatube
+            docker compose pull
+            docker compose up -d
+            docker image prune -f
+            docker compose ps
